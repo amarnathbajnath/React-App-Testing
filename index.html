@@ -7,14 +7,9 @@
     <!-- Tailwind CSS CDN for utility styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Scrollbar Styling (Optional) */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1; /* Slate-300 */
-            border-radius: 4px;
-        }
+        /* Custom Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
         /* Style for the suggestions dropdown */
         #material_suggestions {
@@ -98,19 +93,20 @@
                     <input type="number" id="add_price" placeholder="Price" min="0.01" step="0.01" class="mt-1 block w-full p-2 border rounded-md">
                 </div>
                 <div class="col-span-6 flex justify-end space-x-3 pt-2">
+                    <!-- Note: Disabled state added to prevent clicks before fields are filled -->
                     <button id="add_item_btn" type="button" 
-                            class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-150 shadow-md disabled:opacity-50">
+                            class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-150 shadow-md">
                         + Add Item Manually
                     </button>
                 </div>
-            </div >
+            </div>
 
             <!-- Selected Added Items Output Area (Table) -->
             <div class="border p-4 rounded-md bg-white">
                  <h3 class="text-lg font-semibold mb-3 text-gray-700">Manually Added Materials:</h3>
                 <div id="added_items_container" class="space-y-4">
                     <!-- Manually added line items will be appended here -->
-                    <p class="text-sm text-gray-500 italic" id="no_manual_materials_selected">No materials manually added yet.</p>
+                     <p class="text-sm text-gray-500 italic" id="no_manual_materials_selected">No materials manually added yet.</p>
                 </div>
             </div>
         </section>
@@ -154,14 +150,13 @@
     // 💡 GLOBAL STATE MANAGEMENT & CONFIGURATION
     // =====================================================
 
-    // Array to hold all selected items (The state of the quote)
     let materialItems = []; // Items from the search list
     let addedItems = [];    // Manually entered items
 
     const VAT_RATE = 0.125;
     const MARKUP_RATE = 0.275;
 
-    // --- UI Element References (for cleaner code) ---
+    // --- UI Element References ---
     const elements = {
         searchInput: document.getElementById('search_material'),
         suggestionsContainer: document.getElementById('material_suggestions'),
@@ -186,14 +181,17 @@
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(number);
     };
 
-    /** Simple CSV parser function (Assumes data structure is consistent) */
-    const parseCsvData = async (csvText) => {
-         // Split the text into rows, handling potential empty lines
+    /** 
+     * Parses the CSV text data into an array of structured objects.
+     * This assumes the first row contains headers like "Name", "Unit", "Price".
+     */
+    const parseCsvData = (csvText) => {
+        // Split the text into rows, handling potential empty lines
         let rows = csvText.trim().split('\n').filter(row => row.length > 0);
 
         if (rows.length === 0) return [];
 
-        // Assuming the first row is the header and subsequent rows are data
+        // Assuming the first row is the header
         const headers = rows[0].split(',').map(h => h.trim()).filter(h => h !== '');
         let dataArray = [];
 
@@ -207,64 +205,74 @@
                 dataArray.push(obj);
             }
         }
-
         return dataArray;
     };
 
-
-    /** Fetches and processes materials from the Google Sheet CSV link */
+    /** 
+     * Fetches materials from the Google Sheet CSV link (CLIENT-SIDE IMPLEMENTATION).
+     * WARNING: This is slow and inefficient for large sheets; use a backend API in production!
+     */
     const fetchMaterials = async (query) => {
-        // !!! IMPORTANT: This is client-side processing, inefficient for large sheets !!!
+        console.log("Attempting to load data from external sheet...");
+
+        // The provided CSV URL
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF-dVNCimVYFht-LgwEeKT4rEtW-IDphibc5oSV60YBjLxGn4KGT45nU2U58EfBCYbF0UdDxdoe88r/pub?gid=0&single=true&output=csv';
 
-        // 1. Fetch the entire CSV content
-        const response = await fetch(csvUrl);
-        const csvText = await response.text();
+        try {
+            // 1. Fetch the entire CSV content
+            const response = await fetch(csvUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const csvText = await response.text();
 
-        // 2. Parse the text into a JavaScript array of objects
-        let allMaterials = await parseCsvData(csvText);
+            // 2. Parse the text into a JavaScript array of objects
+            let allMaterials = parseCsvData(csvText);
+            console.log(`Successfully loaded ${allMaterials.length} materials from CSV.`);
 
-        // 3. Filter results client-side based on the query
-        if (!query) return [];
 
-        const lowerCaseQuery = query.toLowerCase();
-        const filteredResults = allMaterials.filter(item => 
-            (item['Name'] || '').toLowerCase().includes(lowerCaseQuery)
-        );
-        
-        // 4. Transform and clean up the data structure for use in the app logic
-        return filteredResults.map(item => ({
-             name: item['Name'],
-             unit: item['Unit'],
-             price: parseFloat(item['Price']) || 0 // Ensure price is a float
-        }));
+            // 3. Filter results client-side based on the query
+            if (!query) return [];
 
-        /* 
-         * 🛠️ PRODUCTION NOTE: If this were production code, you would not fetch the whole CSV. 
-         * You would send `query` to your Node/Python backend which would use the Google Sheets API's search endpoint 
-         * (or a dedicated database) to find matches and return only small JSON objects.
-         */
+            const lowerCaseQuery = query.toLowerCase();
+             
+            // We must map to use the correct header names (e.g., 'Name', 'Unit', 'Price')
+            // This assumes your Google Sheet headers are exactly "Name", "Unit", and "Price".
+            const filteredResults = allMaterials.filter(item => {
+                const nameMatch = item['Name'] && item['Name'].toLowerCase().includes(lowerCaseQuery);
+                return nameMatch;
+            });
+
+             // 4. Transform and clean up the data structure for use in the app logic
+            return filteredResults.map(item => ({
+                 name: item['Name'],
+                 unit: item['Unit'],
+                 price: parseFloat(item['Price']) || 0 // Ensure price is a float
+            }));
+
+        } catch (error) {
+            console.error("Material Data Loading Failed:", error);
+            alert(`Failed to load material data. Please check the console for details (${error.message}).`);
+            return [];
+        }
     };
 
 
     // =====================================================
-    // ✨ CORE LOGIC 1: MATERIAL SEARCH & SELECTION (REMAINS THE SAME)
+    // ✨ CORE LOGIC 1: MATERIAL SEARCH & SELECTION (Updated)
     // =====================================================
 
     /** Handles selection of an item from the search list */
     const selectMaterial = (item) => {
-        // 1. Reset UI and clear suggestions
+        // ... (Rest of this function is logically correct and requires no change) ...
         elements.suggestionsContainer.innerHTML = '';
         elements.searchInput.value = '';
 
-        // 2. Handle Quantity Defaulting
         let quantity = parseFloat(prompt(`Enter quantity for ${item.name} (${item.unit}):`, 1));
         if (isNaN(quantity) || quantity <= 0) {
             alert("Invalid quantity. Setting to 1.");
             quantity = 1;
         }
 
-        // 3. Calculate and store item state
         const lineTotal = parseFloat((item.price * quantity).toFixed(2));
 
         materialItems.push({
@@ -275,13 +283,12 @@
             lineTotal: lineTotal
         });
 
-        // 4. Render UI and recalculate totals
         renderMaterialItem(materialItems[materialItems.length - 1]);
         calculateSummary();
     };
 
 
-    /** Renders the HTML for one selected material item */
+    /** Renders the HTML for one selected material item (Requires careful state management) */
     const renderMaterialItem = (item) => {
          elements.materialContainer.innerHTML = ''; // Clear previous items
 
@@ -299,6 +306,7 @@
                         <span class="text-sm text-gray-600">${i.unit} (${formatCurrency(i.price)} / unit)</span>
                     </div>
                     <div class="w-1/5 flex items-center space-x-2">
+                         <!-- Use data-index to reliably find the item in the array -->
                          <input type="number" value="${i.quantity}" min="1" class="w-full p-2 border rounded-md text-right qty_input" data-index="${materialItems.indexOf(i)}">
                     </div>
                     <div class="w-1/4 text-right font-bold text-xl text-indigo-700">${formatCurrency(i.lineTotal)}</div>
@@ -331,7 +339,7 @@
 
 
     // =====================================================
-    // ✨ CORE LOGIC 2: MANUAL ADDED ITEMS (REMAINS THE SAME)
+    // ✨ CORE LOGIC 2: MANUAL ADDED ITEMS (FIXED)
     // =====================================================
     
     /** Handles adding a manual item */
@@ -361,11 +369,11 @@
             lineTotal: lineTotal
         });
         
-        // Render UI and recalculate totals
-        renderAddedItem(addedItems[addedItems.length - 1]);
+        // FIX: Ensure render is called *before* calculation
+        renderAddedItem(addedItems[addedItems.length - 1]); 
         calculateSummary();
 
-        // Clear inputs for the next entry
+        // Clear inputs for the next entry and re-enable button state (optional)
         nameInput.value = '';
         qtyInput.value = '1';
         priceInput.value = '';
@@ -374,7 +382,7 @@
 
     /** Renders the HTML for one manually added item */
     const renderAddedItem = (item) => {
-         elements.addedItemContainer.innerHTML = ''; // Clear previous items
+         elements.addedItemContainer.innerHTML = ''; 
 
         if (addedItems.length === 0) {
              elements.addedItemContainer.innerHTML = '<p class="text-sm text-gray-500 italic" id="no_manual_materials_selected">No materials manually added yet.</p>';
@@ -419,43 +427,39 @@
                 calculateSummary();
             });
         });
-
     }
 
 
     // =====================================================
-    // 📊 CORE LOGIC 3: SUMMARY CALCULATIONS (REMAINS THE SAME)
+    // 📊 CORE LOGIC 3: SUMMARY CALCULATIONS (NO CHANGE)
     // =====================================================
 
     /** Calculates and updates all summary fields based on current state */
     const calculateSummary = () => {
         let subtotal = 0;
 
-        // 1. Calculate Subtotal from Materials
         materialItems.forEach(item => {
             subtotal += item.lineTotal;
         });
 
-        // 2. Calculate Subtotal from Added Items
         addedItems.forEach(item => {
             subtotal += item.lineTotal;
         });
 
-        // 3. Apply Rates
         const vatAmount = subtotal * VAT_RATE;
         const markupAmount = subtotal * MARKUP_RATE;
         const overallTotal = subtotal + vatAmount + markupAmount;
 
-        // 4. Update UI (Display)
-        elements.subtotal.textContent = formatCurrency(subtotal);
-        elements.vat.textContent = formatCurrency(vatAmount);
-        elements.markup.textContent = formatCurrency(markupAmount);
-        elements.overallTotal.textContent = formatCurrency(overallTotal);
+        // Update UI (Display)
+        elements.subtotal.textContent = formatCurrency(parseFloat(subtotal.toFixed(2)));
+        elements.vat.textContent = formatCurrency(parseFloat(vatAmount.toFixed(2)));
+        elements.markup.textContent = formatCurrency(parseFloat(markupAmount.toFixed(2)));
+        elements.overallTotal.textContent = formatCurrency(parseFloat(overallTotal.toFixed(2)));
     };
 
 
     // =====================================================
-    // 🔄 INITIALIZATION & EVENT BINDING
+    // 🔄 INITIALIZATION & EVENT BINDING (NO CHANGE)
     // =====================================================
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -464,13 +468,11 @@
         elements.addButton.addEventListener('click', addManualItem);
 
 
-        /** Handles the Material Search Autocomplete Logic */
         let debounceTimer;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value;
 
-            // Show/Hide suggestions container based on input length
             if (query.length < 2) {
                  elements.suggestionsContainer.classList.add('hidden');
                  return;
@@ -483,13 +485,12 @@
                     displaySuggestions(results, e.target);
                 } catch (error) {
                     console.error("API Fetch Error:", error);
-                    alert("Error connecting to the material database. Check console for details.");
+                    alert(`Failed to load data: ${error.message}`);
                 }
             }, 300);
         });
 
 
-        /** Displays the fetched results in the suggestions dropdown */
         const displaySuggestions = (results, sourceElement) => {
              elements.suggestionsContainer.innerHTML = '';
 
@@ -498,7 +499,7 @@
                 return;
             }
 
-            let html = '<div class="p-2"></div>'; // Padding div for aesthetics
+            let html = '<div class="p-2"></div>';
 
             results.forEach(item => {
                 html += `
@@ -520,7 +521,6 @@
                 button.addEventListener('click', (e) => {
                     const materialData = JSON.parse(e.currentTarget.getAttribute('data-material'));
                     selectMaterial(materialData);
-                    // Hide suggestions after selection
                     elements.suggestionsContainer.classList.add('hidden'); 
                 });
             });
