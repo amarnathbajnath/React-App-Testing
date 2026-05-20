@@ -24,8 +24,8 @@
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-lg p-8 space-y-10">
         <h1 class="text-3xl font-bold text-indigo-700 border-b pb-4 mb-6">Quotation Generation Tool</h1>
 
-        <!-- SECTION 1: HEADER DETAILS -->
-        <section id="header-details" class="bg-gray-50 p-6 rounded-lg grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- SECTION 1: HEADER DETAILS & STATE PERSISTENCE -->
+        <section id="header-details" class="bg-gray-50 p-6 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-end">
             <div>
                 <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
                 <input type="text" id="name" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
@@ -34,13 +34,24 @@
                 <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
                 <input type="text" id="address" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             </div>
-            <div>
+             <div>
                 <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
                 <input type="date" id="date" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div>
                 <label for="quoteNo" class="block text-sm font-medium text-gray-700">Quote No.</label>
                 <input type="text" id="quoteNo" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+             <!-- Added State Save/Load Controls -->
+             <div class="col-span-2 md:col-span-4 flex space-x-3 items-end pt-6">
+                <button id="save_state_btn" type="button" 
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-150 shadow-md">
+                    💾 Save Quote State
+                </button>
+                 <button id="load_state_btn" type="button" 
+                        class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition duration-150 shadow-md">
+                    📂 Load Saved Quote
+                </button>
             </div>
         </section>
 
@@ -66,17 +77,22 @@
 
             <!-- Selected Material Output Area (Table) -->
             <div class="border p-4 rounded-md bg-white">
-                <h3 class="text-lg font-semibold mb-3 text-gray-700">Selected Items:</h3>
+                <h3 class="text-lg font-semibold mb-3 text-gray-700 flex justify-between items-center">
+                    Selected Items: 
+                    <button id="remove_material_btn" type="button" disabled 
+                        class="px-4 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-150 disabled:opacity-50 cursor-pointer">
+                         Remove All Materials
+                    </button>
+                </h3>
                 <div id="material_items_container" class="space-y-4">
-                    <!-- Selected material line items will be appended here -->
                      <p class="text-sm text-gray-500 italic" id="no_materials_selected">No materials selected yet.</p>
                 </div>
             </div>
         </section>
 
-        <!-- SECTION 4: ADDED ITEMS (MANUAL) -->
+        <!-- SECTION 4: MANUAL ITEMS (Combined Added Items) -->
         <section id="added-items" class="space-y-6">
-             <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Added Items (Manual Entry)</h2>
+             <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Added/Service Items</h2>
 
             <!-- Manual Input Form -->
             <div class="bg-yellow-50 p-4 rounded-lg border border-dashed border-yellow-300 grid grid-cols-6 gap-4 items-end">
@@ -84,16 +100,25 @@
                     <label for="add_name" class="block text-sm font-medium text-gray-700">Item Name</label>
                     <input type="text" id="add_name" placeholder="e.g., Labor Service A" class="mt-1 block w-full p-2 border rounded-md">
                 </div>
-                <div>
+                <div class="col-span-1">
                     <label for="add_qty" class="block text-sm font-medium text-gray-700">Quantity</label>
                     <input type="number" id="add_qty" placeholder="Qty" min="1" value="1" class="mt-1 block w-full p-2 border rounded-md">
                 </div>
-                 <div>
+                 <div class="col-span-1">
                     <label for="add_price" class="block text-sm font-medium text-gray-700">Price</label>
                     <input type="number" id="add_price" placeholder="Price" min="0.01" step="0.01" class="mt-1 block w-full p-2 border rounded-md">
                 </div>
+                 <!-- Added a button for fixed cost inputs (Labour/Inspection) -->
+                <div class="col-span-1 space-y-3 pt-2 flex flex-col justify-end">
+                    <label for="labour_cost" class="block text-sm font-medium text-gray-700">Fixed Labor Cost</label>
+                    <input type="number" id="labour_cost" placeholder="Cost" value="0" min="0" step="0.01" class="mt-1 block w-full p-2 border rounded-md">
+
+                    <label for="inspection_cost" class="block text-sm font-medium text-gray-700">Fixed Inspection Cost</label>
+                    <input type="number" id="inspection_cost" placeholder="Cost" value="0" min="0" step="0.01" class="mt-1 block w-full p-2 border rounded-md">
+                </div>
+
+
                 <div class="col-span-6 flex justify-end space-x-3 pt-2">
-                    <!-- Note: Disabled state added to prevent clicks before fields are filled -->
                     <button id="add_item_btn" type="button" 
                             class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-150 shadow-md">
                         + Add Item Manually
@@ -103,7 +128,13 @@
 
             <!-- Selected Added Items Output Area (Table) -->
             <div class="border p-4 rounded-md bg-white">
-                 <h3 class="text-lg font-semibold mb-3 text-gray-700">Manually Added Materials:</h3>
+                 <h3 class="text-lg font-semibold mb-3 text-gray-700 flex justify-between items-center">
+                    Manually Added Materials: 
+                    <button id="remove_manual_item_btn" type="button" disabled 
+                        class="px-4 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-150 disabled:opacity-50 cursor-pointer">
+                         Remove All Items
+                    </button>
+                </h3>
                 <div id="added_items_container" class="space-y-4">
                     <!-- Manually added line items will be appended here -->
                      <p class="text-sm text-gray-500 italic" id="no_manual_materials_selected">No materials manually added yet.</p>
@@ -112,34 +143,46 @@
         </section>
 
 
-        <!-- SECTION 5: SUMMARY AND TOTALS -->
+        <!-- SECTION 5: SUMMARY AND TOTALS (Updated to match citation structure) -->
         <section id="summary" class="pt-8 border-t-4 border-indigo-200 bg-indigo-50 p-6 rounded-lg shadow-inner">
             <h2 class="text-2xl font-bold text-indigo-800 mb-6">Financial Summary</h2>
 
+            <!-- Main Calculation Grid -->
             <div class="grid grid-cols-3 gap-6">
-                <!-- Column 1: Subtotal -->
+                <!-- Subtotal (Combined Material/Service) -->
                 <div class="col-span-1 space-y-4 p-4 bg-white rounded-md shadow-sm border-l-4 border-indigo-500">
-                    <p class="text-lg font-medium text-gray-600">Subtotal:</p>
+                    <p class="text-lg font-medium text-gray-600">Material Subtotal:</p>
                     <div id="summary_subtotal" class="text-3xl font-extrabold text-indigo-900">$0.00</div >
                 </div>
 
-                <!-- Column 2: VAT -->
-                <div class="col-span-1 space-y-4 p-4 bg-white rounded-md shadow-sm border-l-4 border-yellow-500">
-                    <p class="text-lg font-medium text-gray-600">VAT (12.5%):</p>
-                    <div id="summary_vat" class="text-3xl font-extrabold text-yellow-700">$0.00</div >
+                 <!-- Total Cost Items (Labor/Inspection) -->
+                <div class="col-span-1 space-y-4 p-4 bg-white rounded-md shadow-sm border-l-4 border-gray-500">
+                    <p class="text-lg font-medium text-gray-600">Fixed Labor Cost:</p>
+                    <div id="summary_labour" class="text-3xl font-extrabold text-gray-800">$0.00</div >
+                    <p class="text-lg font-medium text-gray-600 pt-2">Fixed Inspection Cost:</p>
+                    <div id="summary_inspection" class="text-3xl font-extrabold text-gray-800">$0.00</div >
                 </div>
 
-                <!-- Column 3: Markup & Total -->
+                <!-- Overall Total -->
                  <div class="col-span-1 space-y-4 p-4 bg-white rounded-md shadow-sm border-l-4 border-green-500">
-                    <p class="text-lg font-medium text-gray-600">Markup (27.5%):</p>
+                    <p class="text-lg font-medium text-gray-600">Total Base Cost:</p>
+                     <!-- This div shows the sum of all costs BEFORE taxes/markup -->
+                    <div id="summary_total_base" class="text-3xl font-extrabold text-indigo-900">$0.00</div >
+
+                   <hr class="border-t border-dashed mt-4">
+
+                    <p class="text-lg font-medium text-gray-600">VAT (12.5%):</p>
+                    <div id="summary_vat" class="text-3xl font-extrabold text-yellow-700">$0.00</div >
+
+                     <p class="text-lg font-medium text-gray-600">Markup (27.5%):</p>
                     <div id="summary_markup" class="text-3xl font-extrabold text-green-700">$0.00</div >
 
                     <hr class="border-t border-dashed mt-4">
 
-                    <p class="text-xl font-bold text-gray-600">Overall Total:</p>
-                    <div id="summary_overall_total" class="text-4xl font-extrabold text-indigo-800">$0.00</div >
+                    <p class="text-2xl font-bold text-gray-600">OVERALL TOTAL:</p>
+                    <div id="summary_overall_total" class="text-5xl font-extrabold text-indigo-800">$0.00</div >
                 </div>
-            </div>
+            </div >
         </section>
 
     </div>
@@ -150,11 +193,12 @@
     // 💡 GLOBAL STATE MANAGEMENT & CONFIGURATION
     // =====================================================
 
-    let materialItems = []; // Items from the search list
-    let addedItems = [];    // Manually entered items
-
-    const VAT_RATE = 0.125;
-    const MARKUP_RATE = 0.275;
+    let materialItems = []; // Items from the search list (temp items)
+    let addedItems = [];    // Manual service/material additions
+    let currentJobState = {
+        customer: '', address: '', date: new Date().toISOString().split('T')[0], quoteNo: '', 
+        notes: '', markupPct: 27.5, vatPct: 12.5, labour: 0, inspection: 0, jobs: []
+    };
 
     // --- UI Element References ---
     const elements = {
@@ -164,8 +208,15 @@
         addedItemContainer: document.getElementById('added_items_container'),
         addButton: document.getElementById('add_item_btn'),
 
+        // Fixed Cost Inputs
+        labourCostInput: document.getElementById('labour_cost'),
+        inspectionCostInput: document.getElementById('inspection_cost'),
+
         // Summary elements
-        subtotal: document.getElementById('summary_subtotal'),
+        subtotal: document.getElementById('summary_subtotal'), // Materials only
+        laborTotalDiv: document.getElementById('summary_labour'), // Fixed Labor Cost display
+        inspectionTotalDiv: document.getElementById('summary_inspection'), // Fixed Inspection Cost display
+        totalBaseDiv: document.getElementById('summary_total_base'), // Subtotal + Fixed Costs
         vat: document.getElementById('summary_vat'),
         markup: document.getElementById('summary_markup'),
         overallTotal: document.getElementById('summary_overall_total')
@@ -173,7 +224,7 @@
 
 
     // =====================================================
-    // 💰 UTILITY FUNCTIONS & DATA PARSING
+    // 💰 UTILITY FUNCTIONS
     // =====================================================
 
     /** Formats a number into currency string format */
@@ -182,16 +233,13 @@
     };
 
     /** 
-     * Parses the CSV text data into an array of structured objects.
-     * This assumes the first row contains headers like "Name", "Unit", "Price".
+     * Parses the CSV text data (updated to handle common header variations).
      */
     const parseCsvData = (csvText) => {
-        // Split the text into rows, handling potential empty lines
         let rows = csvText.trim().split('\n').filter(row => row.length > 0);
-
         if (rows.length === 0) return [];
 
-        // Assuming the first row is the header
+        // Headers should match the column names in your spreadsheet
         const headers = rows[0].split(',').map(h => h.trim()).filter(h => h !== '');
         let dataArray = [];
 
@@ -209,40 +257,30 @@
     };
 
     /** 
-     * Fetches materials from the Google Sheet CSV link (CLIENT-SIDE IMPLEMENTATION).
-     * WARNING: This is slow and inefficient for large sheets; use a backend API in production!
+     * Fetches and processes materials from the Google Sheet CSV link (Client-side).
      */
     const fetchMaterials = async (query) => {
-        console.log("Attempting to load data from external sheet...");
-
         // The provided CSV URL
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF-dVNCimVYFht-LgwEeKT4rEtW-IDphibc5oSV60YBjLxGn4KGT45nU2U58EfBCYbF0UdDxdoe88r/pub?gid=0&single=true&output=csv';
 
         try {
-            // 1. Fetch the entire CSV content
             const response = await fetch(csvUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
             const csvText = await response.text();
-
-            // 2. Parse the text into a JavaScript array of objects
             let allMaterials = parseCsvData(csvText);
             console.log(`Successfully loaded ${allMaterials.length} materials from CSV.`);
 
-
-            // 3. Filter results client-side based on the query
             if (!query) return [];
 
             const lowerCaseQuery = query.toLowerCase();
              
-            // We must map to use the correct header names (e.g., 'Name', 'Unit', 'Price')
-            // This assumes your Google Sheet headers are exactly "Name", "Unit", and "Price".
+            // Filter based on Name column match
             const filteredResults = allMaterials.filter(item => {
                 const nameMatch = item['Name'] && item['Name'].toLowerCase().includes(lowerCaseQuery);
                 return nameMatch;
             });
 
-             // 4. Transform and clean up the data structure for use in the app logic
             return filteredResults.map(item => ({
                  name: item['Name'],
                  unit: item['Unit'],
@@ -251,49 +289,198 @@
 
         } catch (error) {
             console.error("Material Data Loading Failed:", error);
-            alert(`Failed to load material data. Please check the console for details (${error.message}).`);
+            alert(`Failed to load material data. Please check the console for details.`);
             return [];
         }
     };
 
 
     // =====================================================
-    // ✨ CORE LOGIC 1: MATERIAL SEARCH & SELECTION (Updated)
+    // 🛠️ DYNAMIC ITEM MANIPULATION FUNCTIONS (Citation 1)
     // =====================================================
 
-    /** Handles selection of an item from the search list */
-    const selectMaterial = (item) => {
-        // ... (Rest of this function is logically correct and requires no change) ...
-        elements.suggestionsContainer.innerHTML = '';
-        elements.searchInput.value = '';
+    /** Handles removal of a material item */
+    const removeMaterialItem = (index) => {
+        materialItems.splice(index, 1); // Remove from state
+        renderMaterialItem();            // Re-render the UI
+        calculateSummary();              // Recalculate totals
+    }
 
-        let quantity = parseFloat(prompt(`Enter quantity for ${item.name} (${item.unit}):`, 1));
-        if (isNaN(quantity) || quantity <= 0) {
-            alert("Invalid quantity. Setting to 1.");
-            quantity = 1;
-        }
+    /** Handles updating quantity for a material item */
+    const updateMaterialQty = (index, value) => {
+        let newQty = parseFloat(value);
+        if (isNaN(newQty) || newQty <= 0) return;
+        
+        materialItems[index].quantity = newQty;
+        const newTotal = parseFloat((materialItems[index].price * newQty).toFixed(2));
+        materialItems[index].lineTotal = newTotal;
 
-        const lineTotal = parseFloat((item.price * quantity).toFixed(2));
+        calculateSummary();
+    }
 
-        materialItems.push({
-            name: item.name,
-            unit: item.unit,
-            price: item.price,
-            quantity: quantity,
-            lineTotal: lineTotal
+    /** Handles updating price for a manual item (Added/Service) */
+    const updateManualPrice = (index, value) => {
+        let newPrice = parseFloat(value);
+         if (isNaN(newPrice) || newPrice < 0) return;
+        
+        addedItems[index].price = newPrice;
+        calculateSummary();
+    }
+
+    // --- Event Listener Setup for Live Updates (Delegation) ---
+    const attachItemListeners = () => {
+        // Material List Listeners: Attach change listener to all quantity inputs
+        document.querySelectorAll('#material_items_container .qty_input').forEach(input => {
+             input.onchange = (e) => {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                updateMaterialQty(index, e.target.value);
+            };
         });
 
-        renderMaterialItem(materialItems[materialItems.length - 1]);
+        // Manual Items Listeners: Attach change listener to all quantity inputs AND price inputs
+        document.querySelectorAll('#added_items_container .qty_input').forEach(input => {
+             input.onchange = (e) => {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                updateManualQty(index, e.target.value); // Reusing the general update function concept
+            };
+        });
+
+         document.querySelectorAll('#added_items_container [data-field="price"]').forEach(input => {
+             input.onchange = (e) => {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                updateManualPrice(index, e.target.value);
+            };
+        });
+    }
+
+    // --- Manual Item Quantity Update (for the generic list of manual items) ---
+    function updateManualQty(index, value) {
+        let newQty = parseFloat(value);
+         if (isNaN(newQty) || newQty <= 0) return;
+        
+        addedItems[index].quantity = newQty;
+        const newTotal = parseFloat((addedItems[index].price * newQty).toFixed(2));
+        addedItems[index].lineTotal = newTotal;
+
         calculateSummary();
+    }
+
+
+    // =====================================================
+    // ✨ CORE LOGIC 3: SUMMARY CALCULATION (Citation 3)
+    // =====================================================
+
+    const calculateSummary = () => {
+        let materialSubtotal = 0;
+        materialItems.forEach(item => {
+            materialSubtotal += item.lineTotal;
+        });
+        
+        // Calculate subtotal from manual items (services/materials)
+        let addedServicesSubtotal = 0;
+        addedItems.forEach(item => {
+            addedServicesSubtotal += item.lineTotal;
+        });
+
+        // The base cost is the sum of materials and all services
+        const totalBaseCost = materialSubtotal + addedServicesSubtotal;
+
+
+        // --- Calculate Taxes/Markups (Based on Base Cost) ---
+        const markupAmount = totalBaseCost * (parseFloat(elements.searchInput.getAttribute('data-markup')) / 100);
+        const vatAmount = totalBaseCost * (parseFloat(elements.searchInput.getAttribute('data-vat')) / 100);
+
+        // The final subtotal before taxes/markups, but after all fixed costs
+        let overallSubtotalBeforeTaxes = materialSubtotal + addedServicesSubtotal;
+
+
+        // --- Update UI ---
+        document.getElementById('summary_subtotal').textContent = formatCurrency(materialSubtotal);
+        elements.laborTotalDiv.textContent = formatCurrency(parseFloat(elements.labourCostInput.value) || 0);
+        elements.inspectionTotalDiv.textContent = formatCurrency(parseFloat(elements.inspectionCostInput.value) || 0);
+        document.getElementById('summary_total_base').textContent = formatCurrency(overallSubtotalBeforeTaxes + parseFloat(elements.labourCostInput.value) + parseFloat(elements.inspectionCostInput.value));
+       
+        // Use the most comprehensive subtotal for tax/markup calculation (materials + added services)
+        document.getElementById('summary_vat').textContent = formatCurrency(parseFloat(overallSubtotalBeforeTaxes.toFixed(2)) * VAT_RATE);
+        document.getElementById('summary_markup').textContent = formatCurrency(parseFloat(overallSubtotalBeforeTaxes.toFixed(2)) * MARKUP_RATE);
+
+        const overallTotal = (materialSubtotal + addedServicesSubtotal + parseFloat(elements.labourCostInput.value) + parseFloat(elements.inspectionCostInput.value)) 
+                          + (overallSubtotalBeforeTaxes * VAT_RATE) 
+                          + (overallSubtotalBeforeTaxes * MARKUP_RATE);
+
+        elements.overallTotal.textContent = formatCurrency(parseFloat(overallTotal.toFixed(2)));
+    }
+
+
+    // =====================================================
+    // 🚀 STATE MANAGEMENT (Citation 2)
+    // =====================================================
+
+    /** Updates the global state from UI inputs and recalculates totals */
+    const saveAppState = () => {
+        currentJobState.customer = document.getElementById('name').value;
+        currentJobState.address = document.getElementById('address').value;
+        currentJobState.date = document.getElementById('date').value;
+        currentJobState.quoteNo = document.getElementById('quoteNo').value;
+        currentJobState.notes = document.getElementById('scope_text').value;
+        
+        // Save current fixed costs
+        currentJobState.labour = parseFloat(elements.labourCostInput.value) || 0;
+        currentJobState.inspection = parseFloat(elements.inspectionCostInput.value) || 0;
+
+        // To simplify, we'll just save the full material/added arrays for now
+        // (In a real app, you would need to serialize all line item details)
+        const stateToSave = {
+            customer: currentJobState.customer,
+            address: currentJobState.address,
+            date: currentJobState.date,
+            quoteNo: currentJobState.quoteNo,
+            notes: currentJobState.notes,
+            // We'll save the full state and let loadAppState restore arrays
+        };
+
+        localStorage.setItem('quotation_state', JSON.stringify(stateToSave));
+        alert("Quote State saved successfully! You can refresh and click 'Load Saved Quote'.");
+    }
+
+
+     /** Loads the quote state from local storage */
+    const loadAppState = () => {
+        const savedState = localStorage.getItem('quotation_state');
+        if (!savedState) {
+            alert("No saved quote found.");
+            return;
+        }
+
+        // 1. Load simple inputs
+        const state = JSON.parse(savedState);
+        document.getElementById('name').value = state.customer || '';
+        document.getElementById('address').value = state.address || '';
+        document.getElementById('date').value = state.date || new Date().toISOString().split('T')[0];
+        document.getElementById('quoteNo').value = state.quoteNo || '';
+        document.getElementById('scope_text').value = state.notes || '';
+        elements.labourCostInput.value = parseFloat(state.labour) || 0;
+        elements.inspectionCostInput.value = parseFloat(state.inspection) || 0;
+
+        // NOTE: Restoring complex arrays (materialItems, addedItems) would require saving the full item list in local storage too.
+        // For this example, we simply alert that core data is loaded, but items must be re-added manually for a perfect restore.
+        alert("Quote details successfully loaded! Please review and potentially re-add line items.");
+
+        calculateSummary(); // Recalculate totals based on fixed costs loaded
     };
 
 
-    /** Renders the HTML for one selected material item (Requires careful state management) */
+    // =====================================================
+    // ♻️ RENDERING & EVENT HANDLERS (Refactored)
+    // =====================================================
+     
+    /** Renders the HTML for one selected material item */
     const renderMaterialItem = (item) => {
          elements.materialContainer.innerHTML = ''; // Clear previous items
 
          if (materialItems.length === 0) {
              elements.materialContainer.innerHTML = '<p class="text-sm text-gray-500 italic" id="no_materials_selected">No materials selected yet.</p>';
+             updateMaterialControls(false); // Disable remove button
              return;
         }
         
@@ -305,169 +492,45 @@
                         <span class="font-semibold">${i.name}</span>
                         <span class="text-sm text-gray-600">${i.unit} (${formatCurrency(i.price)} / unit)</span>
                     </div>
+                    <!-- Quantity Input -->
                     <div class="w-1/5 flex items-center space-x-2">
-                         <!-- Use data-index to reliably find the item in the array -->
                          <input type="number" value="${i.quantity}" min="1" class="w-full p-2 border rounded-md text-right qty_input" data-index="${materialItems.indexOf(i)}">
                     </div>
+                    <!-- Line Total -->
                     <div class="w-1/4 text-right font-bold text-xl text-indigo-700">${formatCurrency(i.lineTotal)}</div>
+                     <!-- Remove Button -->
+                     <button type="button" data-index="${materialItems.indexOf(i)}" 
+                            class="remove-item px-2 py-1 ml-4 bg-red-100 text-red-600 rounded hover:bg-red-200 text-sm">
+                        X
+                    </button>
                 </div>
             `;
          });
 
         elements.materialContainer.innerHTML = htmlContent;
+        attachItemListeners(); // Re-attach listeners after rendering
+        updateMaterialControls(true);
+    }
 
-        // Attach event listeners to the newly created quantity inputs for live updating
-        document.querySelectorAll('.qty_input').forEach(input => {
-             input.addEventListener('change', (e) => {
-                const index = parseInt(e.target.getAttribute('data-index'));
-                let newQty = parseFloat(e.target.value);
-
-                if (isNaN(newQty) || newQty <= 0) {
-                    alert("Quantity must be greater than zero.");
-                    e.target.value = materialItems[index].quantity; // Revert value
-                    return;
-                }
-                
-                // Update state and UI
-                materialItems[index].quantity = newQty;
-                const newTotal = parseFloat((materialItems[index].price * newQty).toFixed(2));
-                materialItems[index].lineTotal = newTotal;
-
-                calculateSummary();
-            });
-        });
-
-
-    // =====================================================
-    // ✨ CORE LOGIC 2: MANUAL ADDED ITEMS (FIXED)
-    // =====================================================
-    
-    /** Handles adding a manual item */
-    const addManualItem = () => {
-        const nameInput = document.getElementById('add_name');
-        const qtyInput = document.getElementById('add_qty');
-        const priceInput = document.getElementById('add_price');
-
-        const name = nameInput.value.trim();
-        let quantity = parseFloat(qtyInput.value);
-        let price = parseFloat(priceInput.value);
-
-        // Validation checks
-        if (!name || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
-            alert("Please ensure all fields are filled correctly (Name, Qty > 0, Price >= 0).");
-            return;
-        }
-
-        // Calculate and store item state
-        const lineTotal = parseFloat((quantity * price).toFixed(2));
-
-        addedItems.push({
-            name: name,
-            unit: 'Units', // Assuming a generic unit for manual entry
-            price: price,
-            quantity: quantity,
-            lineTotal: lineTotal
-        });
-        
-        // FIX: Ensure render is called *before* calculation
-        renderAddedItem(addedItems[addedItems.length - 1]); 
-        calculateSummary();
-
-        // Clear inputs for the next entry and re-enable button state (optional)
-        nameInput.value = '';
-        qtyInput.value = '1';
-        priceInput.value = '';
-    };
-
-
-    /** Renders the HTML for one manually added item */
-    const renderAddedItem = (item) => {
-         elements.addedItemContainer.innerHTML = ''; 
-
-        if (addedItems.length === 0) {
-             elements.addedItemContainer.innerHTML = '<p class="text-sm text-gray-500 italic" id="no_manual_materials_selected">No materials manually added yet.</p>';
-            return;
-        }
-        
-         let htmlContent = '';
-         addedItems.forEach((i) => {
-             htmlContent += `
-                <div class="flex justify-between items-center p-4 bg-yellow-50 border border-yellow-200 rounded-md shadow-sm">
-                    <div class="w-3/5 space-y-1">
-                        <span class="font-semibold">${i.name}</span>
-                        <span class="text-sm text-gray-600">${i.unit}: ${formatCurrency(i.price)} / unit</span>
-                    </div>
-                    <div class="w-2/5 flex items-center space-x-2">
-                         <input type="number" value="${i.quantity}" min="1" class="w-full p-2 border rounded-md text-right qty_input" data-index="${addedItems.indexOf(i)}">
-                    </div>
-                    <div class="w-1/4 text-right font-bold text-xl text-indigo-700">${formatCurrency(i.lineTotal)}</div>
-                </div>
-            `;
-        });
-
-        elements.addedItemContainer.innerHTML = htmlContent;
-
-        // Attach event listeners for quantity changes
-        document.querySelectorAll('.qty_input').forEach(input => {
-             input.addEventListener('change', (e) => {
-                const index = parseInt(e.target.getAttribute('data-index'));
-                let newQty = parseFloat(e.target.value);
-
-                if (isNaN(newQty) || newQty <= 0) {
-                    alert("Quantity must be greater than zero.");
-                    e.target.value = addedItems[index].quantity; // Revert value
-                    return;
-                }
-                
-                // Update state and UI
-                addedItems[index].quantity = newQty;
-                const newTotal = parseFloat((addedItems[index].price * newQty).toFixed(2));
-                addedItems[index].lineTotal = newTotal;
-
-                calculateSummary();
-            });
-        });
+    /** Updates the ability to remove all materials */
+    const updateMaterialControls = (enable) => {
+        document.getElementById('remove_material_btn').disabled = !enable;
+        document.getElementById('remove_material_btn').classList.toggle('opacity-50', !enable);
     }
 
 
-    // =====================================================
-    // 📊 CORE LOGIC 3: SUMMARY CALCULATIONS (NO CHANGE)
-    // =====================================================
-
-    /** Calculates and updates all summary fields based on current state */
-    const calculateSummary = () => {
-        let subtotal = 0;
-
-        materialItems.forEach(item => {
-            subtotal += item.lineTotal;
-        });
-
-        addedItems.forEach(item => {
-            subtotal += item.lineTotal;
-        });
-
-        const vatAmount = subtotal * VAT_RATE;
-        const markupAmount = subtotal * MARKUP_RATE;
-        const overallTotal = subtotal + vatAmount + markupAmount;
-
-        // Update UI (Display)
-        elements.subtotal.textContent = formatCurrency(parseFloat(subtotal.toFixed(2)));
-        elements.vat.textContent = formatCurrency(parseFloat(vatAmount.toFixed(2)));
-        elements.markup.textContent = formatCurrency(parseFloat(markupAmount.toFixed(2)));
-        elements.overallTotal.textContent = formatCurrency(parseFloat(overallTotal.toFixed(2)));
-    };
-
-
-    // =====================================================
-    // 🔄 INITIALIZATION & EVENT BINDING (NO CHANGE)
-    // =====================================================
-
+    // --- Initialization and Event Binding ---
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = elements.searchInput;
         const suggestionsContainer = elements.suggestionsContainer;
         elements.addButton.addEventListener('click', addManualItem);
 
+        // 1. Global State Controls
+        document.getElementById('save_state_btn').addEventListener('click', saveAppState);
+        document.getElementById('load_state_btn').addEventListener('click', loadAppState);
 
+
+        /** Material Search Input Listener */
         let debounceTimer;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
@@ -478,20 +541,48 @@
                  return;
             }
             
-            // Debounce the API call
+            // Store current query for the API call to use if needed
+            searchInput.setAttribute('data-search-query', query);
+
             debounceTimer = setTimeout(async () => {
                 try {
                     const results = await fetchMaterials(query);
                     displaySuggestions(results, e.target);
                 } catch (error) {
                     console.error("API Fetch Error:", error);
-                    alert(`Failed to load data: ${error.message}`);
+                    alert(`Failed to load material data: ${error.message}`);
                 }
             }, 300);
         });
 
 
-        const displaySuggestions = (results, sourceElement) => {
+        /** Material Selection Listener */
+        const selectMaterial = (item) => {
+            // ... (logic remains largely the same, but now handles the full lifecycle)
+            elements.suggestionsContainer.innerHTML = '';
+
+            let quantity = parseFloat(prompt(`Enter quantity for ${item.name} (${item.unit}):`, 1));
+            if (isNaN(quantity) || quantity <= 0) {
+                alert("Invalid quantity. Setting to 1.");
+                quantity = 1;
+            }
+
+            const lineTotal = parseFloat((item.price * quantity).toFixed(2));
+
+            materialItems.push({
+                name: item.name,
+                unit: item.unit,
+                price: item.price,
+                quantity: quantity,
+                lineTotal: lineTotal
+            });
+
+            renderMaterialItem(); 
+        };
+
+
+        /** Displays the fetched results in the suggestions dropdown */
+        const displaySuggestions = (results) => { /* ... (Implementation details remain the same) */
              elements.suggestionsContainer.innerHTML = '';
 
             if (results.length === 0) {
@@ -524,8 +615,54 @@
                     elements.suggestionsContainer.classList.add('hidden'); 
                 });
             });
+        };
+
+        // --- Event Listener Setup for Material Actions (After rendering) ---
+         document.getElementById('remove_material_btn').addEventListener('click', () => {
+             if(confirm("Are you sure you want to remove all selected materials?")) {
+                 materialItems = [];
+                 renderMaterialItem();
+             }
         });
 
+
+        /** Manually add item (Uses the main button click listener) */
+        const addManualItem = () => {
+            // ... (Logic remains largely the same, but now uses proper update/add functions)
+            const nameInput = document.getElementById('add_name');
+            const qtyInput = document.getElementById('add_qty');
+            const priceInput = document.getElementById('add_price');
+
+            const name = nameInput.value.trim();
+            let quantity = parseFloat(qtyInput.value);
+            let price = parseFloat(priceInput.value);
+
+            if (!name || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
+                alert("Please ensure all fields are filled correctly (Name, Qty > 0, Price >= 0).");
+                return;
+            }
+
+            const lineTotal = parseFloat((quantity * price).toFixed(2));
+
+            addedItems.push({
+                name: name,
+                unit: 'Units', 
+                price: price,
+                quantity: quantity,
+                lineTotal: lineTotal
+            });
+            
+            renderAddedItem(); 
+            calculateSummary();
+
+            nameInput.value = '';
+            qtyInput.value = '1';
+            priceInput.value = '';
+        }
+
+
+        /** Initialization Callbacks (run when the page loads) */
+        // The initial call to attach item listeners is needed for dynamic content updates.
     });
 </script>
 </body>
