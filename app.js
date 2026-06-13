@@ -1,255 +1,205 @@
-// --- GLOBAL STATE ---
-let globalMaterialData = []; // This array will hold ALL data fetched from the Google Sheet.
-let nextTempSkuIndex = 1;
+// --- Global Data Storage ---
+let materialData = []; 
 
-// --- CORE FUNCTIONS ---
+// --- Element References ---
+const statusElement = document.getElementById('sheet-status');
+const refreshButton = document.getElementById('refresh-btn');
+
+// ====================================================
+// PART 1: CSV PARSING & FETCH
+// ====================================================
+
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQF-dVNCimVYFht-LgwEeKT4rEtW-IDphibc5oSV60YBjLxGn4KGT45nU2U58EfBCYbF0UdDxdoe88r/pub?gid=0&single=true&output=csv";
 
 /**
- * Parses the CSV text into an array of JavaScript objects.
- * Assumes the first row is the header.
- * @param {string} csvText - The raw text content of the CSV file.
- * @returns {Array<Object>} - An array of objects.
+ * Converts CSV text into a structured Array of Objects.
  */
 function parseCSV(csvText) {
-    const lines = csvText.trim().split('\n');
-    if (lines.length === 0) return [];
+    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length < 2) return [];
 
-    // Extract headers from the first line
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const data = [];
 
-    // Map the rest of the lines to objects
-    const data = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        let obj = {};
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
         
-        // Iterate over headers and values simultaneously
-        headers.forEach((header, index) => {
-            obj[header] = values[index];
-        });
-        return obj;
-    });
+        const row = {
+            sku: values[0] ? values[0].trim() : null,
+            itemName: values[1] ? values[1].trim() : null,
+            unitType: values[2] ? values[2].trim() : 'EA',
+            unitCost: parseFloat(values[3] ? values[3].trim() : 0),
+        };
+        data.push(row);
+    }
     return data;
 }
 
-
 /**
- * Renders the material table based on the provided filtered data.
- * @param {Array<Object>} dataToShow - The subset of data to display.
- */
-function renderMaterialTable(dataToShow) {
-    const tableBody = document.getElementById('material-table-body');
-    tableBody.innerHTML = ''; // Clear the existing table content
-
-    if (dataToShow.length === 0) {
-        // If no data is found, show a placeholder row
-        tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999;">No materials match your criteria.</td></tr>`;
-        return;
-    }
-
-    dataToShow.forEach(item => {
-        // Calculate total cost dynamically if unit cost and quantity exist
-        const unitCost = parseFloat(item.unit_cost) || 0;
-        const qty = parseFloat(item.qty) || 0;
-        const totalCost = (unitCost * qty).toFixed(2);
-
-        const row = `<tr>
-            <td>${item.sku || ''}</td>
-            <td>${item.item_name || ''}</td>
-            <td>${item.unit_type || ''}</td>
-            <td>${item.qty || ''}</td>
-            <td>$${unitCost.toFixed(2)}</td>
-            <td><strong>$${totalCost}</strong></td>
-        </tr>`;
-        
-        tableBody.innerHTML += row;
-    });
-}
-
-
-/**
- * Main function to fetch the CSV and populate the global data array.
+ * Main function to fetch and parse the Google Sheet data.
  */
 async function loadSheetData() {
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQF-dVNCimVYFht-LgwEeKT4rEtW-IDphibc5oSV60YBjLxGn4KGT45nU2U58EfBCYbF0UdDxdoe88r/pub?gid=0&single=true&output=csv";
-    const statusElement = document.getElementById('sheet-status');
-    statusElement.textContent = '⏳ Fetching and parsing data...';
+    statusElement.textContent = '⏳ Loading data...';
     statusElement.style.color = 'orange';
-
+    
     try {
         const response = await fetch(CSV_URL);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const csvText = await response.text();
-
-        // STEP 1: Parse the data
-        globalMaterialData = parseCSV(csvText);
-        console.log("Successfully loaded and parsed data:", globalMaterialData);
-
-        // STEP 2: Display all data by default (no search filter yet)
-        renderMaterialTable(globalMaterialData);
-
-        statusElement.textContent = `✅ Loaded ${globalMaterialData.length} items`;
+        
+        materialData = parseCSV(csvText);
+        
+        statusElement.textContent = `✅ Loaded ${materialData.length} items successfully!`;
         statusElement.style.color = 'green';
-
+        
+        // Clear tables when data is reloaded
+       // document.getElementById('search-results-body').innerHTML = '';
+        // document.getElementById('final-materials-body').innerHTML = '';
+        
     } catch (error) {
-        console.error("Error loading Google Sheet:", error);
+        console.error("Error loading Google Sheet data:", error);
         statusElement.textContent = `❌ Error: ${error.message}`;
         statusElement.style.color = 'red';
+        materialData = [];
+    }
+}
+
+// ====================================================
+// PART 2: CLONING LOGIC (Step 6)
+// ====================================================
+
+function addNewScopeBlock() {
+    const parentContainer = document.getElementById('scope-block-container');
+    // Clone the entire block
+    const newBlock = document.getElementById('scope-block-container').cloneNode(true);
+    parentContainer.appendChild(newBlock);
+}
+
+// ====================================================
+// PART 3: MATERIAL SEARCH (Step 4)
+// ====================================================
+
+/**
+ * Filters the global materialData array based on user input and displays results in the search table.
+ */
+function searchMaterials() {
+    const input = document.getElementById('material-search-input').value.toLowerCase();
+    const searchResultsBody = document.getElementById('search-results-body');
+    searchResultsBody.innerHTML = ''; 
+    
+    const filteredItems = materialData.filter(item => 
+        item.sku.toLowerCase().includes(input) || 
+        item.itemName.toLowerCase().includes(input)
+    );
+
+    if (filteredItems.length === 0) {
+        searchResultsBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No matching materials found.</td></tr>';
+        return;
+    }
+
+    // Populate the search table with results
+    filteredItems.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.sku}</td>
+            <td>${item.itemName}</td>
+            <td>${item.unitType}</td>
+            <td>$${item.unitCost.toFixed(2)}</td>
+            <td><input type="number" id="qty-${item.sku}" class="material-qty" value="1" min="1" style="width: 50px;"></td>
+            <td><button class="btn-add-search" onclick="addToFinalList('${item.sku}')">Add to List</button></td>
+        `;
+        searchResultsBody.appendChild(row);
+    });
+}
+
+/**
+ * Moves a selected item from the search results into the final output table.
+ * @param {string} sku - The SKU of the item to add.
+ */
+function addToFinalList(sku) {
+    const row = document.querySelector(`#material-search-table tr:has(button[onclick*="'${sku}'"])`);
+    if (!row) return;
+
+    const qtyInput = row.querySelector('.material-qty');
+    const qty = parseInt(qtyInput.value);
+    
+    const item = materialData.find(d => d.sku === sku);
+
+    if (item && !isNaN(qty)) {
+        const totalCost = (qty * item.unitCost).toFixed(2);
+        
+        // Create the new row structure for the final list
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${item.sku}</td>
+            <td>${qty}</td>
+            <td>${item.unitType}</td>
+            <td>${item.itemName}</td>            
+            <td>$${item.unitCost.toFixed(2)}</td>            
+            <td class="total-cost">$${totalCost}</td>
+            <td><button class="btn-remove" onclick="removeFinalRow(this)">Remove</button></td>
+        `;
+        // Append to the final list
+        document.getElementById('final-materials-body').appendChild(newRow);
     }
 }
 
 /**
- * Handles the filtering of the material list based on the search input.
- * @param {Event} e - The input event object.
+ * Removes a row from the Final Material List.
  */
-function handleSearch(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    
-    // Filter the global data array
-    const filteredData = globalMaterialData.filter(item => {
-        // Check if SKU or Item Name contains the search term
-        const skuMatch = (item.sku || '').toLowerCase().includes(searchTerm);
-        const nameMatch = (item.item_name || '').toLowerCase().includes(searchTerm);
-        return skuMatch || nameMatch;
-    });
-
-    // Re-render the table with the filtered data
-    renderMaterialTable(filteredData);
+function removeFinalRow(button) {
+    const row = button.parentNode.parentNode;
+    row.remove();
 }
 
-/**
- * Adds a new item manually to the material list.
- */
-function addItem() {
-    // Get values from the form fields
+
+// ====================================================
+// PART 4: MANUAL ITEM ADD (Step 5)
+// ====================================================
+
+function addItemToTable() {
+    const form = document.getElementById('add-item-form');
+    const tableBody = document.getElementById('final-materials-body');
+
     const sku = document.getElementById('temp-sku').value.toUpperCase();
-    const qty = parseFloat(document.getElementById('add-qty').value);
+    const qty = parseInt(document.getElementById('add-qty').value);
     const unitType = document.getElementById('add-unit-type').value;
     const itemName = document.getElementById('add-item-name').value;
     const unitCost = parseFloat(document.getElementById('add-unit-cost').value);
-    const totalCost = (qty * unitCost).toFixed(2);
-
-    if (!sku || isNaN(qty) || qty <= 0 || !itemName || isNaN(unitCost) || unitCost < 0) {
-        alert("Please fill out all fields correctly (Quantity must be > 0, Cost must be valid).");
+    
+    if (!sku || isNaN(qty) || !itemName || isNaN(unitCost)) {
+        alert("Please fill out all required fields (SKU, Qty, Item Name, Unit Cost) correctly.");
         return;
     }
+
+    const totalCost = (qty * unitCost).toFixed(2);
     
-    // Create the new item object
-    const newItem = {
-        sku: sku,
-        item_name: itemName,
-        unit_type: unitType,
-        qty: qty,
-        unit_cost: unitCost,
-        total_cost: totalCost // Store calculated cost
-    };
-
-    // 1. Add the new item to our global list
-    globalMaterialData.push(newItem);
-
-    // 2. Re-render the table (to include the new item)
-    // 3. Re-apply the current search filter, if one is active
-    const currentSearchTerm = document.getElementById('sku-search').value.toLowerCase();
-    const filteredData = globalMaterialData.filter(item => 
-        (item.sku || '').toLowerCase().includes(currentSearchTerm) || 
-        (item.item_name || '').toLowerCase().includes(currentSearchTerm)
-    );
-    renderMaterialTable(filteredData);
-
-    // 4. Reset the form for the next entry
-    document.getElementById('temp-sku').value = 'TMP-' + String(nextTempSkuIndex).padStart(3, '0');
-    document.getElementById('add-qty').value = 1;
-    document.getElementById('add-item-name').value = '';
-    document.getElementById('add-unit-cost').value = '0.00';
-    nextTempSkuIndex++;
-
-    alert(`Item ${sku} added successfully!`);
-}
-
-
-/**
- * Adds a new block/template for a complete Quote/Job.
- */
-function addTemplateBlock() {
-    const templateContainer = document.getElementById('dashboard-main');
-    
-    // Create the structure (Customer Info, Scope, Material List)
-    const newBlock = document.createElement('div');
-    newBlock.className = 'info-section new-quote-block';
-    newBlock.style.marginTop = '50px';
-    newBlock.innerHTML = `
-        <h2 style="border-bottom: none; background-color: #f0f8ff;">--- New Quote Block ---</h2>
-        
-        <section class="info-section customer-info" style="background-color: #fff;">
-            <h2>Customer Information</h2>
-            <div class="form-row">
-                <div class="form-group"><label>Customer Name:</label><input type="text" placeholder="Name"></div>
-                <div class="form-group"><label>Quote No.:</label><input type="text" placeholder="Q-000"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group full-width"><label>Address:</label><textarea placeholder="Address"></textarea></div>
-                <div class="form-group"><label>Date:</label><input type="date" value="${new Date().toISOString().substring(0, 10)}"></div>
-            </div>
-        </section>
-
-        <section class="info-section job-details" style="background-color: #f0f8ff;">
-            <h2>Scope of Work / Job Details</h2>
-            <textarea rows="5" placeholder="Describe the job scope..."></textarea>
-        </section>
-
-        <section class="info-section material-management" style="background-color: #fff; border: 1px dashed #aaa;">
-            <h2>Material List</h2>
-            <div class="search-area">
-                <input type="text" id="temp-search-sku" placeholder="Search by SKU or Item Description...">
-            </div>
-            <div class="table-container">
-                <table id="temp-material-table">
-                    <thead>
-                        <tr>
-                            <th>SKU</th><th>Item Name</th><th>Unit Type</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody id="temp-material-table-body">
-                         <tr><td colspan="6" style="text-align: center; color: #aaa;">No items added yet.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <h3>Add Custom Item Manually</h3>
-            <div class="form-row add-item-row">
-                <!-- NOTE: For simplicity, I am only cloning the form inputs, not the full JS logic. -->
-                <div class="form-group"><label>Temp SKU</label><input type="text" placeholder="TMP-001"></div>
-                <div class="form-group"><label>Quantity</label><input type="number" value="1" min="1"></div>
-                <div class="form-group"><label>Unit Type</label><input type="text" placeholder="pcs"></div>
-                <div class="form-group"><label>Item Name</label><input type="text" placeholder="Item"></div>
-                <div class="form-group"><label>Unit Cost ($)</label><input type="number" value="0.00" min="0" step="0.01"></div>
-                <div class="form-group"><button class="action-btn">Add Item</button></div>
-            </div>
-        </section>
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>${item.sku}</td>
+        <td>${qty}</td>
+        <td>${item.unitType}</td>
+        <td>${item.itemName}</td>            
+        <td>$${item.unitCost.toFixed(2)}</td>  
+        <td class="total-cost">$${totalCost}</td>
+        <td><button class="btn-remove" onclick="removeFinalRow(this)">Remove</button></td>
     `;
+    
+    tableBody.appendChild(newRow);
 
-    // Append the new block to the main dashboard
-    templateContainer.appendChild(newBlock);
-
-    // Optional: Scroll to the new block
-    newBlock.scrollIntoView({ behavior: 'smooth' });
+    // Clear form
+    form.reset();
 }
 
 
-// --- INITIALIZATION & EVENT LISTENERS ---
+// ====================================================
+// INITIALIZATION & LISTENERS
+// ====================================================
 
-function initializeApp() {
-    // 1. Load Data when page starts
+function loadInitialData() {
     loadSheetData();
-
-    // 2. Attach the CSV Refresh Listener
-    document.getElementById('refresh-btn').addEventListener('click', loadSheetData);
-
-    // 3. Attach the Search Listener
-    document.getElementById('sku-search').addEventListener('input', handleSearch);
-
-    // 4. Attach the Add Item Listener
-    document.getElementById('add-item-btn').addEventListener('click', addItem);
-
-    // 5. Attach the Template Adder
-    document.getElementById('add-template-btn').addEventListener('click', addTemplateBlock);
 }
+
+// Attach listeners
+refreshButton.addEventListener('click', loadSheetData);
+document.getElementById('clone-scope-button').addEventListener('click', addNewScopeBlock);
